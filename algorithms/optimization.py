@@ -16,7 +16,14 @@ def configuration_score(
       redundancia y exposición en ese orden.
     """
     # TODO: Add your code here
-    raise NotImplementedError("Punto 1: implemente configuration_score")
+    weight_vector = [1,-1,-1]
+    components = problem.score_components(configuration)
+    score = 0
+    for i in range(len(weight_vector)):
+        score = score + components[i]*weight_vector[i] # Producto punto para la ponderación de métricas en función de evaluación.
+    return score
+    
+    
 
 
 def hill_climbing(
@@ -39,7 +46,46 @@ def hill_climbing(
       mejoras aceptadas antes de retornar el OptimizationResult.
     """
     # TODO: Add your code here
-    raise NotImplementedError("Punto 1: implemente hill_climbing")
+    
+    #Inicialización de estado inicial
+    index = 0
+    current_state = initial_configuration 
+    current_score = configuration_score(problem,initial_configuration)
+    history = [initial_configuration]
+    score_history = [current_score]
+    evaluations = 1
+    while True:
+        
+        neighborhood = problem.neighbors(current_state)
+        candidate = 0
+        scored_neighborhood = [] 
+        
+        #Busqueda de nodos en frontera con sus respectivos puntajes
+        for neighbor in neighborhood:
+            evaluations = evaluations + 1
+            scored_neighborhood.append(configuration_score(problem,neighbor))
+            
+        #Se escoge el vecino con mayor puntaje, la función max e index retornan el máximo, en caso de empate se escoge el primer índice
+        neighborhood_max_score = max(scored_neighborhood)
+        candidate = scored_neighborhood.index(neighborhood_max_score)
+        
+        #Ascenso de colina con evaluación estricta, en caso de llegar a la iteración max_iterations (indexada como max_interations-1) retornar
+        
+        if neighborhood_max_score <= current_score or index >= max_iterations:
+            return OptimizationResult(current_state,current_score,evaluations,index,history,score_history)
+            
+        #En caso de cumplir la mejora estricta, pasar a nuevo estado.
+        current_state = neighborhood[candidate]
+        current_score = neighborhood_max_score
+        
+        #Actualización del historial.
+        history.append(current_state)
+        score_history.append(current_score)
+        
+        #Aumento de índice
+        index = index + 1
+        
+        
 
 
 def cooling_schedule(initial_temperature: float, cooling_rate: float, iteration: int) -> float:
@@ -49,7 +95,9 @@ def cooling_schedule(initial_temperature: float, cooling_rate: float, iteration:
     Esta función se invoca desde simulated_annealing en cada iteración.
     """
     # TODO: Add your code here
-    raise NotImplementedError("Punto 2: implemente cooling_schedule")
+    if cooling_rate <= 0 or cooling_rate >= 1:
+        raise ValueError("cooling_rate must be a value in the following interval: (0,1)")
+    return initial_temperature * cooling_rate**iteration
 
 
 def simulated_annealing(
@@ -80,7 +128,53 @@ def simulated_annealing(
     minimum_temperature = 1e-9
 
     # TODO: Add your code here
-    raise NotImplementedError("Punto 2: implemente simulated_annealing")
+    current_state = initial_configuration
+    current_score = configuration_score(problem,initial_configuration)
+    evaluations = 1
+    index = 0
+    history = [current_state]
+    score_history = [current_score]
+    maximization_state = initial_configuration
+    maximization_score = current_score
+
+    while True:
+               
+        #T(index) = T_0 * \alpha^{index}. Donde \alpha \in (0,1).
+        temperature = cooling_schedule(initial_temperature, cooling_rate, index) #En iteración 0 obtenemos la temperatura inicial puesto que T(0) = T_0 * 1
+        
+        if temperature < minimum_temperature or index >= max_iterations:
+            return OptimizationResult(maximization_state, maximization_score,evaluations, index,history,score_history)
+        
+        neighborhood = problem.neighbors(current_state)
+        candidate = rng.choice(neighborhood)
+        candidate_score = configuration_score(problem,candidate)
+        evaluations = evaluations + 1
+        
+        delta_e = candidate_score - current_score
+        
+        
+        if delta_e > 0:
+            current_state = candidate #El mejora estrictamente positiva siempre se acepta. El candidato se vuelve el estado actual.
+            current_score = candidate_score
+        elif rng.random() <= math.e**(delta_e/temperature):
+            current_state = candidate #Se escoge el candidato con probabilidad e^{delta_E/T}
+            current_score = candidate_score  
+
+        #Óptimo histórico.
+        if current_score > maximization_score:
+            maximization_state = current_state 
+            maximization_score = current_score
+                    
+        #Actualizar historial
+        history.append(current_state)
+        score_history.append(current_score)
+            
+        index = index + 1
+        
+        
+            
+            
+        
 
 
 def one_point_crossover(
@@ -100,6 +194,8 @@ def one_point_crossover(
         raise ValueError("Los padres deben tener la misma longitud")
     if len(parent1) < 2:
         return parent1, parent2
+        
+    
 
     # TODO: Add your code here
     raise NotImplementedError("Punto 3: implemente one_point_crossover")
