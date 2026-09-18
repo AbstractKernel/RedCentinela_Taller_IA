@@ -190,15 +190,27 @@ def one_point_crossover(
     - Cada descendiente combina el prefijo de un padre con el sufijo del otro.
     - Retorne tuplas y no repare aquí los descendientes.
     """
+    
     if len(parent1) != len(parent2):
         raise ValueError("Los padres deben tener la misma longitud")
     if len(parent1) < 2:
         return parent1, parent2
         
-    
-
     # TODO: Add your code here
-    raise NotImplementedError("Punto 3: implemente one_point_crossover")
+
+    #Corte aleatorio
+    cut_point = rng.randint(1,len(parent1)-1)
+    #Inicialización de cromosomas particionados.
+    parent1_l = parent1[0:cut_point]
+    parent1_r = parent1[cut_point:]
+    parent2_l = parent2[0:cut_point]
+    parent2_r = parent2[cut_point:]
+    
+    #Cruce
+    child_1 = parent1_l + parent2_r
+    child_2 = parent2_l + parent1_r
+   
+    return (child_1, child_2)
 
 
 def swap_mutation(
@@ -218,7 +230,30 @@ def swap_mutation(
     - Retorne una tupla nueva; no modifique el individuo recibido.
     """
     # TODO: Add your code here
-    raise NotImplementedError("Punto 3: implemente swap_mutation")
+    
+    #Si no existe 1's y 0's al mismo tiempo es imposible hacer swap, saltar algoritmo.
+    
+    if (not (1 in individual) or not (0 in individual)) or  rng.random() > mutation_probability:
+        return individual
+        
+    ones_index_config = []
+    ceros_index_config = []
+    for i in range(len(individual)):
+        if individual[i] == 1:
+            ones_index_config.append(i)
+        else:
+            ceros_index_config.append(i)
+    
+    pivot_one = rng.choice(ones_index_config)
+    pivot_cero = rng.choice(ceros_index_config)
+    
+    r_config = list(individual)
+    r_config[pivot_one] = individual[pivot_cero]
+    r_config[pivot_cero] = individual[pivot_one]
+    
+    return tuple(r_config)
+   
+    
 
 
 def genetic_algorithm(
@@ -254,5 +289,71 @@ def genetic_algorithm(
     if not 0 <= elite_size <= population_size:
         raise ValueError("elite_size debe estar entre 0 y population_size")
 
-    # TODO: Add your code here
-    raise NotImplementedError("Punto 3: implemente genetic_algorithm")
+    population = problem.initial_population(population_size,rng)
+    scores = []
+    for individual in population:
+        scores.append(configuration_score(problem,individual))
+    
+    evaluations = len(population)
+    
+    champion_score = max(scores)
+    champion_index = scores.index(champion_score)
+    champion = population[champion_index]
+    
+    history = [champion]
+    score_history = [champion_score]
+    
+    best_champion = champion
+    best_champion_score = champion_score
+    for gen in range(generations):
+        
+        sorted_indices = sorted(range(len(population)), key = lambda i : scores[i], reverse = True)
+        elite = []
+        elite_scores = []
+        for i in sorted_indices[:elite_size]:
+            elite.append(population[i])
+            elite_scores.append(scores[i])
+        
+        children = []
+        children_scores = []
+        
+        while len(children) < len(population)-len(elite):
+            parent1 = problem.tournament_select(population,scores,rng)
+            parent2 = problem.tournament_select(population,scores,rng)
+            child1, child2 = one_point_crossover(parent1,parent2,rng)
+            
+            if len(children) < len(population) - len(elite):
+                
+                child1 = problem.repair_configuration(child1,rng)
+                child1 = swap_mutation(child1,mutation_probability,rng)
+                
+                children.append(child1)
+                children_scores.append(configuration_score(problem,child1))
+                evaluations = evaluations + 1
+                
+            if len(children) < len(population) - len(elite):
+                
+                child2 = problem.repair_configuration(child2,rng)
+                child2 = swap_mutation(child2,mutation_probability,rng)
+                
+                children.append(child2)
+                children_scores.append(configuration_score(problem,child2))
+                evaluations = evaluations + 1
+                
+        population = elite + children
+        scores = elite_scores + children_scores
+        
+        champion_score = max(scores)
+        champion_index = scores.index(champion_score)
+        champion = population[champion_index]
+        if champion_score > best_champion_score:
+            best_champion = champion
+            best_champion_score = champion_score
+            
+        history.append(best_champion)
+        score_history.append(best_champion_score)
+    
+    return OptimizationResult(best_champion,best_champion_score,evaluations,generations,history,score_history)
+                
+        
+        
