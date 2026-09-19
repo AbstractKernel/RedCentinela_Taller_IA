@@ -41,9 +41,39 @@ class MinimaxAgent(MultiAgentSearchAgent):
           la raíz. Retorne la acción de MAX y conserve la primera en los empates.
         """
         # TODO: Add your code here
-        raise NotImplementedError("Punto 4: implemente MinimaxAgent.get_action")
+        self.nodes_evaluated = 0
+        self.nodes_evaluated += 1  # la raíz también cuenta como estado procesado
 
+        if state.is_win() or state.is_lose():
+            return None
+        legal_actions = state.get_legal_actions(0)
+        if not legal_actions:
+            return None
 
+        def value(node: GameState, agent_index: int, depth_left: int) -> float:
+            self.nodes_evaluated += 1
+            if node.is_win() or node.is_lose() or depth_left == 0:
+                return evaluation_function(node)
+            actions = node.get_legal_actions(agent_index)
+            if not actions:
+                return evaluation_function(node)
+            next_agent = (agent_index + 1) % node.get_num_agents()
+            values = (
+                value(node.generate_successor(agent_index, action), next_agent, depth_left - 1)
+                for action in actions
+            )
+            return max(values) if agent_index == 0 else min(values)
+
+        best_action = legal_actions[0]
+        best_value = float("-inf")
+        for action in legal_actions:
+            action_value = value(state.generate_successor(0, action), 1, self.depth - 1)
+            if action_value > best_value:  # estricto: en empate se conserva la primera acción
+                best_value = action_value
+                best_action = action
+        return best_action
+        
+        
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """Agente Minimax que evita explorar ramas mediante poda alfa-beta."""
 
@@ -62,4 +92,69 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           y corte si valor <= alpha.
         """
         # TODO: Add your code here
-        raise NotImplementedError("Punto 5: implemente AlphaBetaAgent.get_action")
+        self.nodes_evaluated = 0
+        self.nodes_evaluated += 1  # la raíz también cuenta como estado procesado
+
+        if state.is_win() or state.is_lose():
+            return None
+        legal_actions = state.get_legal_actions(0)
+        if not legal_actions:
+            return None
+
+        def value(
+            node: GameState, agent_index: int, depth_left: int, alpha: float, beta: float
+        ) -> float:
+            self.nodes_evaluated += 1
+            if node.is_win() or node.is_lose() or depth_left == 0:
+                return evaluation_function(node)
+            actions = node.get_legal_actions(agent_index)
+            if not actions:
+                return evaluation_function(node)
+            next_agent = (agent_index + 1) % node.get_num_agents()
+
+            if agent_index == 0:  # MAX
+                best = float("-inf")
+                for action in actions:
+                    best = max(
+                        best,
+                        value(
+                            node.generate_successor(agent_index, action),
+                            next_agent,
+                            depth_left - 1,
+                            alpha,
+                            beta,
+                        ),
+                    )
+                    if best >= beta:  # MIN ya tiene una mejor alternativa arriba
+                        return best
+                    alpha = max(alpha, best)
+                return best
+
+            best = float("inf")  # MIN
+            for action in actions:
+                best = min(
+                    best,
+                    value(
+                        node.generate_successor(agent_index, action),
+                        next_agent,
+                        depth_left - 1,
+                        alpha,
+                        beta,
+                    ),
+                )
+                if best <= alpha:  # MAX ya tiene una mejor alternativa arriba
+                    return best
+                beta = min(beta, best)
+            return best
+
+        best_action = legal_actions[0]
+        best_value = float("-inf")
+        alpha = float("-inf")
+        beta = float("inf")
+        for action in legal_actions:
+            action_value = value(state.generate_successor(0, action), 1, self.depth - 1, alpha, beta)
+            if action_value > best_value:  # estricto: en empate se conserva la primera acción
+                best_value = action_value
+                best_action = action
+            alpha = max(alpha, best_value)
+        return best_action

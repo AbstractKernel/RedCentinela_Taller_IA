@@ -39,4 +39,37 @@ def evaluation_function(state: GameState) -> float:
         return base_evaluation_function(state)
 
     # TODO: Add your code here
-    return base_evaluation_function(state)
+    layout = state.layout
+    defender = state.defender_position
+    intruder = state.intruder_position
+    pending = state.pending_terminals
+
+    cap = float(layout.height + layout.width)
+
+    def dist(a, b) -> float:
+        d = layout.distance(a, b)
+        return cap if math.isinf(d) else min(float(d), cap)
+
+    # puntaje
+    value = state.get_score()
+
+    # terminales pendientes
+    if pending:
+        distances = sorted(dist(defender, terminal) for terminal in pending)
+        value -= 20.0 * len(pending)
+        value -= 4.0 * distances[0]
+        if len(distances) > 1:
+            value -= 1.0 * sum(distances[1:]) / (len(distances) - 1)
+
+    # distancia entre el intruso y el defensor
+    gap = dist(intruder, defender)
+    if gap <= 1:
+        value -= 100.0
+    else:
+        value += 1.0 * min(gap, 10.0)
+
+    # moverse según legal actions
+    value += 3.0 * len(state.get_legal_actions(0))
+
+    return max(-999.0, min(999.0, value))
+    
