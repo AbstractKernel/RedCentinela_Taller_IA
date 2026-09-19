@@ -84,3 +84,6 @@ límite de rondas.
 `nodes_evaluated` cuenta una vez cada estado procesado, incluida la raíz y los
 estados terminales o de corte. La reducción producida por alfa-beta se observa
 al comparar esta métrica con la obtenida por Minimax bajo las mismas condiciones.
+
+
+.
