@@ -42,7 +42,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         """
         # TODO: Add your code here
         self.nodes_evaluated = 0
-        self.nodes_evaluated += 1  # la raíz también cuenta como estado procesado
+        self.nodes_evaluated += 1  # la raíz también cuenta
 
         if state.is_win() or state.is_lose():
             return None
@@ -50,7 +50,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         if not legal_actions:
             return None
 
-        def value(node: GameState, agent_index: int, depth_left: int) -> float:
+        def minimax(node: GameState, agent_index: int, depth_left: int) -> float:
             self.nodes_evaluated += 1
             if node.is_win() or node.is_lose() or depth_left == 0:
                 return evaluation_function(node)
@@ -59,7 +59,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 return evaluation_function(node)
             next_agent = (agent_index + 1) % node.get_num_agents()
             values = (
-                value(node.generate_successor(agent_index, action), next_agent, depth_left - 1)
+                minimax(node.generate_successor(agent_index, action), next_agent, depth_left - 1)
                 for action in actions
             )
             return max(values) if agent_index == 0 else min(values)
@@ -67,8 +67,8 @@ class MinimaxAgent(MultiAgentSearchAgent):
         best_action = legal_actions[0]
         best_value = float("-inf")
         for action in legal_actions:
-            action_value = value(state.generate_successor(0, action), 1, self.depth - 1)
-            if action_value > best_value:  # estricto: en empate se conserva la primera acción
+            action_value = minimax(state.generate_successor(0, action), 1, self.depth - 1)
+            if action_value > best_value:  
                 best_value = action_value
                 best_action = action
         return best_action
@@ -101,7 +101,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         if not legal_actions:
             return None
 
-        def value(
+        def aplhabeta(
             node: GameState, agent_index: int, depth_left: int, alpha: float, beta: float
         ) -> float:
             self.nodes_evaluated += 1
@@ -117,7 +117,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 for action in actions:
                     best = max(
                         best,
-                        value(
+                        aplhabeta(
                             node.generate_successor(agent_index, action),
                             next_agent,
                             depth_left - 1,
@@ -134,7 +134,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             for action in actions:
                 best = min(
                     best,
-                    value(
+                    aplhabeta(
                         node.generate_successor(agent_index, action),
                         next_agent,
                         depth_left - 1,
@@ -152,8 +152,8 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         alpha = float("-inf")
         beta = float("inf")
         for action in legal_actions:
-            action_value = value(state.generate_successor(0, action), 1, self.depth - 1, alpha, beta)
-            if action_value > best_value:  # estricto: en empate se conserva la primera acción
+            action_value = aplhabeta(state.generate_successor(0, action), 1, self.depth - 1, alpha, beta)
+            if action_value > best_value: 
                 best_value = action_value
                 best_action = action
             alpha = max(alpha, best_value)
